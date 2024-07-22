@@ -97,10 +97,10 @@
           ycycle,          fyear_init,    debug_forcing, &
           atm_data_type,   atm_data_dir,  precip_units, rotate_wind, &
           atm_data_format, ocn_data_format, atm_data_version, &
-          bgc_data_type, &
+          atm_data_wspd_value, bgc_data_type, &
           ocn_data_type, ocn_data_dir, wave_spec_file,  &
           oceanmixed_file, restore_ocn, trestore, &
-          ice_data_type, ice_data_conc, ice_data_dist, &
+          ice_data_type, ice_data_conc, ice_data_dist, ice_data_thck_value, &
           snw_filename, &
           snw_tau_fname, snw_kappa_fname, snw_drdt0_fname, &
           snw_rhos_fname, snw_Tgrd_fname, snw_T_fname
@@ -284,9 +284,9 @@
         oceanmixed_ice, restore_ice,     restore_ocn,   trestore,       &
         precip_units,   default_season,  wave_spec_type,nfreq,          &
         atm_data_type,  ocn_data_type,   bgc_data_type, fe_data_type,   &
-        ice_data_type,  ice_data_conc,   ice_data_dist,                 &
+        ice_data_type, ice_data_conc, ice_data_dist, ice_data_thck_value, &
         fyear_init,     ycycle,          wave_spec_file,restart_coszen, &
-        atm_data_dir,   ocn_data_dir,    bgc_data_dir,                  &
+        atm_data_dir,   ocn_data_dir,    bgc_data_dir, atm_data_wspd_value, &
         atm_data_format, ocn_data_format, rotate_wind,                  &
         oceanmixed_file, atm_data_version
 
@@ -527,6 +527,7 @@
       ycycle = 1                  ! number of years in forcing cycle
       atm_data_format = 'bin'     ! file format ('bin'=binary or 'nc'=netcdf)
       atm_data_type   = 'default'
+      atm_data_wspd_value = c5    ! wind speed
       atm_data_dir    = ' '
       atm_data_version = '_undef'  ! date atm_data_file was generated.
       rotate_wind     = .true.    ! rotate wind/stress composants to computational grid orientation
@@ -549,6 +550,7 @@
       fe_data_type    = 'default'
       ice_data_type   = 'default' ! used by some tests to initialize ice state (overall type and mask)
       ice_data_conc   = 'default' ! used by some tests to initialize ice state (concentration)
+      ice_data_thck_value = c1    ! initial thickness value when using uniform concentration
       ice_data_dist   = 'default' ! used by some tests to initialize ice state (distribution)
       bgc_data_dir    = 'unknown_bgc_data_dir'
       ocn_data_type   = 'default'
@@ -3077,7 +3079,7 @@
       use ice_arrays_column, only: hin_max
       use ice_domain_size, only: nilyr, nslyr, nx_global, ny_global, ncat
       use ice_grid, only: dxrect, dyrect
-      use ice_forcing, only: ice_data_type, ice_data_conc, ice_data_dist
+      use ice_forcing, only: ice_data_type, ice_data_conc, ice_data_dist, ice_data_thck_value
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -3249,16 +3251,16 @@
              trim(ice_data_conc) == 'box2001') then
 
             if (trim(ice_data_conc) == 'p5') then
-               hbar = c2  ! initial ice thickness
+               hbar = ice_data_thck_value  ! initial ice thickness
                abar = p5  ! initial ice concentration
             elseif (trim(ice_data_conc) == 'p8') then
-               hbar = c1  ! initial ice thickness
+               hbar = ice_data_thck_value  ! initial ice thickness
                abar = 0.8_dbl_kind  ! initial ice concentration
             elseif (trim(ice_data_conc) == 'p9') then
-               hbar = c1  ! initial ice thickness
+               hbar = ice_data_thck_value  ! initial ice thickness
                abar = 0.9_dbl_kind  ! initial ice concentration
             elseif (trim(ice_data_conc) == 'c1') then
-               hbar = c1  ! initial ice thickness
+               hbar = ice_data_thck_value  ! initial ice thickness
                abar = c1  ! initial ice concentration
             elseif (trim(ice_data_conc) == 'box2001') then
                hbar = c2  ! initial ice thickness

@@ -83,7 +83,9 @@
         botmelt_file
 
       real (kind=dbl_kind), public  :: &
-           c1intp, c2intp     ! interpolation coefficients
+           c1intp, c2intp,   &     ! interpolation coefficients
+           ice_data_thck_value, & ! initial thickness value
+           atm_data_wspd_value ! wind speed value
 
       integer (kind=int_kind) :: &
            oldrecnum = 0  , & ! old record number (save between steps)
@@ -646,15 +648,15 @@
       elseif (trim(atm_data_type) == 'box2001') then
          call box2001_data_atm
       elseif (trim(atm_data_type) == 'uniform_northeast') then
-         call uniform_data_atm('NE')
+         call uniform_data_atm('NE',atm_data_wspd_value)
       elseif (trim(atm_data_type) == 'uniform_north') then
-         call uniform_data_atm('N')
+         call uniform_data_atm('N',atm_data_wspd_value)
       elseif (trim(atm_data_type) == 'uniform_east') then
-         call uniform_data_atm('E')
+         call uniform_data_atm('E',atm_data_wspd_value)
       elseif (trim(atm_data_type) == 'uniform_south') then
-         call uniform_data_atm('S')
+         call uniform_data_atm('S',atm_data_wspd_value)
       elseif (trim(atm_data_type) == 'uniform_west') then
-         call uniform_data_atm('W')
+         call uniform_data_atm('W',atm_data_wspd_value)
       elseif (trim(atm_data_type) == 'calm') then
          call uniform_data_atm('N',c0) ! direction does not matter when c0
       elseif (trim(atm_data_type) == 'hycom') then
@@ -2276,9 +2278,6 @@
       enddo
 
       if (.not.exists) then
-         write(nu_diag,*) subname,' atm_data_dir = ',trim(atm_data_dir)
-         write(nu_diag,*) subname,' atm_data_type_prefix = ',trim(atm_data_type_prefix)
-         write(nu_diag,*) subname,' atm_data_version = ',trim(atm_data_version)
          call abort_ice(error_message=subname//' could not find forcing file')
       endif
 
@@ -5263,12 +5262,14 @@
          iblk, i,j           ! loop indices
 
       real (kind=dbl_kind) :: &
-         tau, &
+         tau, pi, &
          atm_val ! value to use for atm speed
 
       character(len=*), parameter :: subname = '(uniform_data_atm)'
 
       if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+
+      call icepack_query_parameters(pi_out=pi)
 
       ! check for optional spd
       if (present(spd)) then
@@ -5279,19 +5280,19 @@
 
       ! wind components
       if (dir == 'NE') then
-         uatm = atm_val
-         vatm = atm_val
+         uatm = atm_data_wspd_value*cos(45*c2*pi/c365)
+         vatm = atm_data_wspd_value*sin(45*c2*pi/c365)
       elseif (dir == 'N') then
          uatm = c0
-         vatm = atm_val
+         vatm = atm_data_wspd_value
       elseif (dir == 'E') then
-         uatm = atm_val
+         uatm = atm_data_wspd_value
          vatm = c0
       elseif (dir == 'S') then
          uatm = c0
-         vatm = -atm_val
+         vatm = -atm_data_wspd_value
       elseif (dir == 'W') then
-         uatm = -atm_val
+         uatm = -atm_data_wspd_value
          vatm = c0
       else
          call abort_ice (subname//'ERROR: dir unknown, dir = '//trim(dir), &
