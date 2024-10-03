@@ -5308,12 +5308,17 @@
       ! wind components
       if (dir == 'NE') then
 <<<<<<< HEAD
+<<<<<<< HEAD
          uatm = atm_data_wspd_value*cos(45.0 * pi / 180.0)
          vatm = atm_data_wspd_value*sin(45.0 * pi / 180.0)
 =======
          uatm = atm_data_wspd_value*cos(45*c2*pi/c365)
          vatm = atm_data_wspd_value*sin(45*c2*pi/c365)
 >>>>>>> 7b43eb6 (forcage et conditions initiales idealisees)
+=======
+         uatm = atm_data_wspd_value*cos(45.0 * pi / 180.0)
+         vatm = atm_data_wspd_value*sin(45.0 * pi / 180.0)
+>>>>>>> 1c23de8 (forcage par les vagues inspire du cas box2001)
       elseif (dir == 'N') then
          uatm = c0
          vatm = atm_data_wspd_value
