@@ -118,6 +118,12 @@
         topmelt_data, &
         botmelt_data
 
+      
+      real(kind=dbl_kind), dimension(:,:,:), allocatable, public :: &
+        strwvx, &
+        strwvy
+
+
       real (kind=dbl_kind), dimension(:,:,:,:,:), allocatable :: &
           wave_spectrum_data ! field values at 2 temporal data points
 
@@ -239,7 +245,18 @@
          stat=ierr)
       if (ierr/=0) call abort_ice('(alloc_forcing): Out of Memory')
 
-! initialize this, not set in box2001 (and some other forcings?)
+      ! Allocation de strwvx et strwvy
+      allocate (strwvx(nx_block, ny_block, max_blocks), stat=ierr)
+      if (ierr /= 0) call abort_ice('(alloc_forcing): Out of Memory for strwvx')
+
+      allocate (strwvy(nx_block, ny_block, max_blocks), stat=ierr)
+      if (ierr /= 0) call abort_ice('(alloc_forcing): Out of Memory for strwvy')
+
+      ! Initialisation de strwvx et strwvy à zéro
+      strwvx(:,:,:) = c0
+      strwvy(:,:,:) = c0
+
+      ! initialize this, not set in box2001 (and some other forcings?)
 
       cldf = c0
 
@@ -5265,6 +5282,14 @@
          tau, pi, &
          atm_val ! value to use for atm speed
 
+
+      real (kind=dbl_kind) :: &
+	 dist_edge, coeff_dissip  ! distance au bord de la glace et coefficient de dissipation
+      integer (kind=int_kind) :: position_ice_edge  ! Position de l'ice edge pour chaque colonne
+      integer (kind=int_kind), save :: iteration_counter = 0
+      real(kind=dbl_kind) :: angle_theta_wind  ! Variable locale pour l'angle
+
+	
       character(len=*), parameter :: subname = '(uniform_data_atm)'
 
       if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
@@ -5277,11 +5302,13 @@
       else
          atm_val = c5 ! default
       endif
+      coeff_dissip = 0.001  ! coefficient de dissipation (à ajuster selon le modèle)
+      angle_theta_wind = 0.0
 
       ! wind components
       if (dir == 'NE') then
-         uatm = atm_data_wspd_value*cos(45*c2*pi/c365)
-         vatm = atm_data_wspd_value*sin(45*c2*pi/c365)
+         uatm = atm_data_wspd_value*cos(45.0 * pi / 180.0)
+         vatm = atm_data_wspd_value*sin(45.0 * pi / 180.0)
       elseif (dir == 'N') then
          uatm = c0
          vatm = atm_data_wspd_value
@@ -5299,6 +5326,40 @@
               file=__FILE__, line=__LINE__)
       endif
 
+
+      do iblk = 1, nblocks
+
+           do j = 1, ny_block
+            
+         	! Trouver la position de l'ice edge pour cette colonne j
+                position_ice_edge = -1  ! Initialiser à une valeur hors domaine
+                do i = 1, nx_block
+                   ! write(*,*) 'i=', i, ', j=', j, ', aice=', aice(i,j,iblk)  ! Affichage de aice pour chaque cellule
+                   if (aice(i,j,iblk) > 0.15 .and. position_ice_edge == -1) then
+                      position_ice_edge = i  ! Première cellule avec de la glace (ice edge)
+                   endif
+         	end do
+                ! Affichage pour vérifier la position de l'ice edge
+                ! write(*,*) 'Ligne j=', j, ', position_ice_edge=', position_ice_edge
+                do i = 1, nx_block
+	           dist_edge = 0.0
+		   if (position_ice_edge == -1 .or. i <= position_ice_edge) then
+                      ! Pas de glace dans cette colonne, pas de contrainte
+                      strwvx(i,j,iblk) = c0
+ 		      strwvy(i,j,iblk) = c0
+
+		   else			
+                      ! zone de glace, calculer la distance à l'ice edge (position_ice_edge)
+                      dist_edge = real(i - position_ice_edge, dbl_kind) * 100.0 ! Distance relative à l'ice edge
+                      ! Décroissance exponentielle du vent dans la glace
+                      strwvx(i,j,iblk) = 0.5 * 1025 * 9.81 * cos(angle_theta_wind) * 0.3 * coeff_dissip * exp(-(coeff_dissip * dist_edge) / cos(angle_theta_wind))
+ 		      strwvy(i,j,iblk) = 0.5 * 1025 * 9.81 * sin(angle_theta_wind) * 0.3 * coeff_dissip * exp(-(coeff_dissip * dist_edge) / cos(angle_theta_wind))
+         	   endif
+
+                end do
+           end do
+      end do
+
       do iblk = 1, nblocks
          do j = 1, ny_block
          do i = 1, nx_block
@@ -5306,8 +5367,10 @@
             ! wind stress
             wind(i,j,iblk) = sqrt(uatm(i,j,iblk)**2 + vatm(i,j,iblk)**2)
             tau = rhoa(i,j,iblk) * 0.0012_dbl_kind * wind(i,j,iblk)
-            strax(i,j,iblk) = aice(i,j,iblk) * tau * uatm(i,j,iblk)
-            stray(i,j,iblk) = aice(i,j,iblk) * tau * vatm(i,j,iblk)
+            strax(i,j,iblk) = aice(i,j,iblk) * ((tau * uatm(i,j,iblk)) + strwvx(i,j,iblk))
+            stray(i,j,iblk) = aice(i,j,iblk) * ((tau * vatm(i,j,iblk)) + strwvy(i,j,iblk))
+	    ! Affichage des valeurs de uatm et vatm pour chaque cellule
+            ! write(*,*) 'uatm(', i, ',', j, ') = ', uatm(i,j,iblk), ', vatm(', i, ',', j, ') = ', vatm(i,j,iblk)
 
          enddo
          enddo
@@ -5321,14 +5384,21 @@
 
 !     uniform current fields in some direction
 
+      use ice_domain, only: nblocks
+      use ice_blocks, only: nx_block, ny_block, nghost
       use ice_flux, only: uocn, vocn
+      use ice_state, only: aice
 
       character(len=*), intent(in) :: dir
 
       real(kind=dbl_kind), intent(in), optional :: spd ! velocity
 
       ! local parameters
+      integer (kind=int_kind) :: &
+         iblk, i,j           ! loop indices
 
+      real (kind=dbl_kind) :: &
+         pi
       real(kind=dbl_kind) :: &
            ocn_val ! value to use for ocean currents
 

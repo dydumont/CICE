@@ -407,7 +407,7 @@
       arlx   = 300.0_dbl_kind ! revised_evp values. Otherwise overwritten in ice_dyn_shared
       revised_evp = .false.   ! if true, use revised procedure for evp dynamics
       yield_curve = 'ellipse' ! yield curve
-      kstrength = 1           ! 1 = Rothrock 75 strength, 0 = Hibler 79
+      kstrength = 1           ! 1 = Rothrock 75 strength, 0 = Hibler 79, 2 = Auclair 22, 3 = Mohr Coulomb, 4 = VD
       Pstar = 2.75e4_dbl_kind ! constant in Hibler strength formula (kstrength = 0)
       Cstar = 20._dbl_kind    ! constant in Hibler strength formula (kstrength = 0)
       krdg_partic = 1         ! 1 = new participation, 0 = Thorndike et al 75
@@ -2166,6 +2166,12 @@
             tmpstr2 = ' : Hibler (1979)'
          elseif (kstrength == 1) then
             tmpstr2 = ' : Rothrock (1975)'
+         elseif (kstrength == 2) then
+            tmpstr2 = ' : Auclair (2022)'
+         elseif (kstrength == 3) then
+            tmpstr2 = ' : Mohr Coulomb'
+         elseif (kstrength == 4) then
+            tmpstr2 = ' : VD (2024)'
          else
             tmpstr2 = ' : unknown value'
          endif
@@ -3400,12 +3406,11 @@
             enddo
 
          elseif (trim(ice_data_type) == 'eastblock') then
-            ! block on east half of domain in center of domain
+            ! block on the right 75% of the domain
             icells = 0
             do j = jlo, jhi
             do i = ilo, ihi
-               if (jglob(j) > ny_global/4 .and. jglob(j) < 3*nx_global/4 .and. &
-                   iglob(i) >= nx_global/2) then
+               if (iglob(i) >= nx_global/4) then
                   icells = icells + 1
                   indxi(icells) = i
                   indxj(icells) = j

@@ -1248,6 +1248,9 @@
                              uocn,     vocn,     &
                              aiX,      fm,       &
                              strocnx,  strocny)
+ 
+      ! use ice_forcing, only: strwvx, strwvy  ! Appel des variables depuis ice_forcing.F90
+      use ice_domain, only: nblocks
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -1275,7 +1278,7 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, ij
+         i, j, ij, iblk ! ajout de iblk pour la boucle pour faire correspondre les dimensions de strocn et strwv
 
       real (kind=dbl_kind) :: &
          vrel    , & !
@@ -1293,7 +1296,7 @@
          i = indxUi(ij)
          j = indxUj(ij)
 
-          vrel = rhow*Cw(i,j)*sqrt((uocn(i,j) - uvel(i,j))**2 + &
+         vrel = rhow*Cw(i,j)*sqrt((uocn(i,j) - uvel(i,j))**2 + &
                  (vocn(i,j) - vvel(i,j))**2)  ! m/s
 
 !        strocnx(i,j) = strocnx(i,j) &
@@ -1301,12 +1304,21 @@
 !        strocny(i,j) = strocny(i,j) &
 !                     - vrel*(vvel(i,j)*cosw + uvel(i,j)*sinw) * aiX(i,j)
 
+
          ! update strocnx to most recent iterate and complete the term
          vrel = vrel * aiX(i,j)
          strocnx(i,j) = vrel*((uocn(i,j) - uvel(i,j))*cosw &
                             - (vocn(i,j) - vvel(i,j))*sinw*sign(c1,fm(i,j)))
          strocny(i,j) = vrel*((vocn(i,j) - vvel(i,j))*cosw &
                             + (uocn(i,j) - uvel(i,j))*sinw*sign(c1,fm(i,j)))
+
+
+         ! Ajouter une boucle sur iblk pour parcourir les blocs et faire correspondre les dimensions de strocn et strwv.
+         ! do iblk = 1, nblocks
+                ! attribution à strocn de la contrainte calculée dans ice_forcing
+         	! strocnx(i,j) = strwvx(i,j,iblk)
+         	! strocny(i,j) = strwvy(i,j,iblk)
+         ! end do
 
          ! Hibler/Bryan stress
          ! the sign is reversed later, therefore negative here
