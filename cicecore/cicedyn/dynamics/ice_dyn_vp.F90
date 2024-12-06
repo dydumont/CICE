@@ -56,6 +56,9 @@
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_ice_strength, icepack_query_parameters
+      use icepack_fsd, only: icepack_fsd_strength, icepack_init_fsd_bounds, calcul_fsd_diam
+      use icepack_intfc, only: icepack_query_tracer_flags
+
 
       implicit none
       private
@@ -152,11 +155,13 @@
       subroutine implicit_solver (dt)
 
       use ice_arrays_column, only: Cdn_ocn
+      use ice_arrays_column, only: floe_rad_l, floe_rad_c, &
+          floe_binwidth, c_fsd_range
       use ice_boundary, only: ice_HaloMask, ice_HaloUpdate, &
           ice_HaloDestroy, ice_HaloUpdate_stress
       use ice_blocks, only: block, get_block, nx_block, ny_block
       use ice_domain, only: blocks_ice, halo_info, maskhalo_dyn
-      use ice_domain_size, only: max_blocks, ncat
+      use ice_domain_size, only: max_blocks, ncat, nfsd
       use ice_dyn_shared, only: deformations, iceTmask, iceUmask, &
           cxp, cyp, cxm, cym
       use ice_flux, only: rdg_conv, rdg_shear, strairxT, strairyT, &
@@ -171,7 +176,7 @@
           tarear, grid_type, grid_average_X2Y, &
           grid_atm_dynu, grid_atm_dynv, grid_ocn_dynu, grid_ocn_dynv
       use ice_state, only: aice, aiU, vice, vsno, uvel, vvel, divu, shear, vort, &
-          aice_init, aice0, aicen, vicen, strength
+          aice_init, aice0, aicen, vicen, strength, trcrn
       use ice_timers, only: timer_dynamics, timer_bound, &
           ice_timer_start, ice_timer_stop
 
@@ -210,7 +215,11 @@
          etax2    , & ! etax2  = 2*eta  (shear viscosity)
          rep_prs      ! replacement pressure
 
+      real (kind=dbl_kind) :: &
+	 floe_avg_d   ! mean floe size (m)
+
       logical (kind=log_kind) :: calc_strair
+      logical (kind=log_kind) :: tr_fsd
 
       integer (kind=int_kind), dimension (nx_block,ny_block,max_blocks) :: &
          halomask     ! generic halo mask
@@ -382,17 +391,51 @@
       ! ice strength
       !-----------------------------------------------------------------
 
+	 
+	 call icepack_query_tracer_flags(tr_fsd_out=tr_fsd)
+
          strength(:,:,iblk) = c0  ! initialize
          do ij = 1, icellT(iblk)
             i = indxTi(ij, iblk)
             j = indxTj(ij, iblk)
-            call icepack_ice_strength (ncat,                 &
+
+
+
+	    if (tr_fsd) then
+
+!	    	floe_avg_d = 1.0
+
+
+      		call icepack_init_fsd_bounds (nfsd, & 
+         		floe_rad_l,    &  
+         		floe_rad_c,    &  
+         		floe_binwidth, &  
+         		c_fsd_range)       
+
+
+	    	call calcul_fsd_diam (ncat, nfsd,               &
+				 floe_rad_c,                    &
+                                 trcrn    (i,j, :, :, iblk),    &
+                                 aice    (i,j, iblk),           &
+                                 aicen   (i,j,:,iblk),          &
+                                 floe_avg_d)
+
+            	call icepack_fsd_strength (aice    (i,j,  iblk), &
+                                       vice    (i,j,  iblk),     &
+                                       floe_avg_d,               &
+                                       strength(i,j,  iblk))
+                                       
+
+             else
+            	call icepack_ice_strength (ncat,             &
                                        aice    (i,j,  iblk), &
                                        vice    (i,j,  iblk), &
                                        aice0   (i,j,  iblk), &
                                        aicen   (i,j,:,iblk), &
                                        vicen   (i,j,:,iblk), &
                                        strength(i,j,  iblk))
+             endif  
+                           
          enddo  ! ij
 
       enddo  ! iblk
