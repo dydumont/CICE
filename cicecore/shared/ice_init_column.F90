@@ -624,7 +624,8 @@
 
       integer (kind=int_kind) :: &
          i, j, iblk     , &  ! horizontal indices
-         n, k                ! category index
+         n, k           , &  ! category index
+         imin, v, ihigh      ! new add
 
       logical (kind=log_kind) :: tr_fsd
 
@@ -646,7 +647,6 @@
       afsdn(:,:) = c0
       afsdn(1,:) = c1
       floesize(:,:,:,:,:) = c0
-      floesize(:,:,1,:,:) = c1
 
       call icepack_query_tracer_flags(tr_fsd_out=tr_fsd)
       call icepack_warnings_flush(nu_diag)
@@ -656,30 +656,41 @@
       if (tr_fsd) then
 
          ! initialize floe size distribution the same in every column and category
-         call icepack_init_fsd(nfsd, ice_ic, &
-            floe_rad_c,    &  ! fsd size bin centre in m (radius)
-            floe_binwidth, &  ! fsd size bin width in m (radius)
-            afsd)             ! floe size distribution
+!         call icepack_init_fsd(nfsd, ice_ic, &
+!            floe_rad_c,    &  ! fsd size bin centre in m (radius)
+!            floe_binwidth, &  ! fsd size bin width in m (radius)
+!            afsd)             ! floe size distribution
 
-         do iblk = 1, max_blocks
-            do j = 1, ny_block
-            do i = 1, nx_block
-               do n = 1, ncat
-               do k = 1, nfsd
-                  if (aicen(i,j,n,iblk) > puny) afsdn(k,n) = afsd(k)
-               enddo    ! k
-               enddo    ! n
+!         do iblk = 1, max_blocks
+!            do j = 1, ny_block
+!            do i = 1, nx_block
+!               do n = 1, ncat
+!               do k = 1, nfsd
+!                  if (aicen(i,j,n,iblk) > puny) afsdn(k,n) = afsd(k)
+!               enddo    ! k
+!               enddo    ! n
 
-               call icepack_cleanup_fsd (ncat, nfsd, afsdn) ! renormalize
+!               call icepack_cleanup_fsd (ncat, nfsd, afsdn) ! renormalize
 
-               do n = 1, ncat
-               do k = 1, nfsd
-                  floesize(i,j,k,n,iblk) = afsdn(k,n)
-               enddo    ! k
-               enddo    ! n
-            enddo       ! i
-            enddo       ! j
-         enddo          ! iblk
+!               do n = 1, ncat
+!               do k = 1, nfsd
+!                  floesize(i,j,k,n,iblk) = afsdn(k,n)
+!               enddo    ! k
+!               enddo    ! n
+!            enddo       ! i
+!            enddo       ! j
+!         enddo          ! iblk
+
+         floesize(99:200,:,4,:,:) = c1
+         floesize(201:nx_block,:,nfsd,:,:) = c1
+
+!	 imin = 99
+!	 v = FLOOR(REAL(nx_block - imin) / REAL(nfsd))
+!	 do k = 1, nfsd
+!	    ihigh = MIN(imin + v, nx_block) ! ihigh ne dépasse pas nx_block
+!	    floesize(imin:ihigh,:,k,:,:) = c1
+!	    imin = ihigh+ 1
+!	 enddo
 
          call icepack_warnings_flush(nu_diag)
          if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &

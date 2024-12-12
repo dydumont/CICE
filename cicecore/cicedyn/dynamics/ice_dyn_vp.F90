@@ -155,8 +155,9 @@
       subroutine implicit_solver (dt)
 
       use ice_arrays_column, only: Cdn_ocn
-      use ice_arrays_column, only: floe_rad_l, floe_rad_c, &
-          floe_binwidth, c_fsd_range
+!      use ice_arrays_column, only: floe_rad_l, floe_rad_c, &
+!          floe_binwidth, c_fsd_range
+      use ice_arrays_column, only: floe_rad_c
       use ice_boundary, only: ice_HaloMask, ice_HaloUpdate, &
           ice_HaloDestroy, ice_HaloUpdate_stress
       use ice_blocks, only: block, get_block, nx_block, ny_block
@@ -402,15 +403,6 @@
 
 
 	    if (tr_fsd) then
-
-!	    	floe_avg_d = 1.0
-
-
-      		call icepack_init_fsd_bounds (nfsd, & 
-         		floe_rad_l,    &  
-         		floe_rad_c,    &  
-         		floe_binwidth, &  
-         		c_fsd_range)       
 
 
 	    	call calcul_fsd_diam (ncat, nfsd,               &

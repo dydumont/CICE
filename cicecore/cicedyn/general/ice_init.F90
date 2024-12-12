@@ -97,8 +97,8 @@
           ycycle,          fyear_init,    debug_forcing, &
           atm_data_type,   atm_data_dir,  precip_units, rotate_wind, &
           atm_data_format, ocn_data_format, atm_data_version, &
-          atm_data_wspd_value, bgc_data_type, &
-          ocn_data_type, ocn_data_dir, wave_spec_file,  &
+          atm_data_wspd_value, angle_theta_wind, angle_theta_wave, bgc_data_type, &
+          ocn_data_type, coeff_dissip_wave, ocn_data_dir, wave_spec_file,  &
           oceanmixed_file, restore_ocn, trestore, &
           ice_data_type, ice_data_conc, ice_data_dist, ice_data_thck_value, &
           snw_filename, &
@@ -287,7 +287,7 @@
         ice_data_type, ice_data_conc, ice_data_dist, ice_data_thck_value, &
         fyear_init,     ycycle,          wave_spec_file,restart_coszen, &
         atm_data_dir,   ocn_data_dir,    bgc_data_dir, atm_data_wspd_value, &
-        atm_data_format, ocn_data_format, rotate_wind,                  &
+        angle_theta_wind, angle_theta_wave, coeff_dissip_wave, atm_data_format, ocn_data_format, rotate_wind,    &
         oceanmixed_file, atm_data_version
 
       !-----------------------------------------------------------------
@@ -528,8 +528,11 @@
       atm_data_format = 'bin'     ! file format ('bin'=binary or 'nc'=netcdf)
       atm_data_type   = 'default'
       atm_data_wspd_value = c5    ! wind speed
+      angle_theta_wind = 0.0      ! wind angle
+      angle_theta_wave = 0.0      ! wave angle
+      coeff_dissip_wave = 0.001   ! wave dissipation coefficient
       atm_data_dir    = ' '
-      atm_data_version = '_undef'  ! date atm_data_file was generated.
+      atm_data_version = '_undef' ! date atm_data_file was generated.
       rotate_wind     = .true.    ! rotate wind/stress composants to computational grid orientation
       calc_strair     = .true.    ! calculate wind stress
       formdrag        = .false.   ! calculate form drag
@@ -3406,7 +3409,7 @@
             enddo
 
          elseif (trim(ice_data_type) == 'eastblock') then
-            ! block on the right 75% of the domain
+            ! block covering the center 50% of the domain
             icells = 0
             do j = jlo, jhi
             do i = ilo, ihi

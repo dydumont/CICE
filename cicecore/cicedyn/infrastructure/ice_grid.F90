@@ -1402,11 +1402,22 @@
 
             call grid_boxislands_kmt(work_g1)
 
+! ferme nord et sud
+
+         ! elseif (trim(kmt_type) == 'channel') then
+
+            ! do j = 3,ny_global-2     ! closed top and bottom
+            ! do i = 1,nx_global       ! open sides
+               ! work_g1(i,j) = c1     ! NOTE nx_global > 5
+            ! enddo
+            ! enddo
+
+! ferme est et ouest
          elseif (trim(kmt_type) == 'channel') then
 
-            do j = 3,ny_global-2     ! closed top and bottom
-            do i = 1,nx_global       ! open sides
-               work_g1(i,j) = c1     ! NOTE nx_global > 5
+            do i = 3, nx_global-2     ! fermé à gauche et à droite
+            do j = 1, ny_global       ! ouvert en haut et en bas
+               work_g1(i,j) = c1      ! canal vertical au centre
             enddo
             enddo
 

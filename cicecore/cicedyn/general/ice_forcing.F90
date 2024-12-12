@@ -85,7 +85,10 @@
       real (kind=dbl_kind), public  :: &
            c1intp, c2intp,   &     ! interpolation coefficients
            ice_data_thck_value, & ! initial thickness value
-           atm_data_wspd_value ! wind speed value
+           atm_data_wspd_value, & ! wind speed value
+           angle_theta_wind,    & ! wind angle
+           angle_theta_wave,    & ! wave angle
+           coeff_dissip_wave      ! dissipation coefficient dependent on wave model
 
       integer (kind=int_kind) :: &
            oldrecnum = 0  , & ! old record number (save between steps)
@@ -5284,11 +5287,9 @@
 
 
       real (kind=dbl_kind) :: &
-	 dist_edge, coeff_dissip  ! distance au bord de la glace et coefficient de dissipation
-      integer (kind=int_kind) :: position_ice_edge  ! Position de l'ice edge pour chaque colonne
-      integer (kind=int_kind), save :: iteration_counter = 0
-      real(kind=dbl_kind) :: angle_theta_wind  ! Variable locale pour l'angle
-
+	 dist_edge  ! distance au bord de la glace et coefficient de dissipation
+         integer (kind=int_kind) :: position_ice_edge  ! Position de l'ice edge pour chaque colonne
+         integer (kind=int_kind), save :: iteration_counter = 0
 	
       character(len=*), parameter :: subname = '(uniform_data_atm)'
 
@@ -5302,13 +5303,11 @@
       else
          atm_val = c5 ! default
       endif
-      coeff_dissip = 0.001  ! coefficient de dissipation (à ajuster selon le modèle)
-      angle_theta_wind = 0.0
 
       ! wind components
       if (dir == 'NE') then
-         uatm = atm_data_wspd_value*cos(45.0 * pi / 180.0)
-         vatm = atm_data_wspd_value*sin(45.0 * pi / 180.0)
+         uatm = atm_data_wspd_value*cos(angle_theta_wind * pi / 180.0)
+         vatm = atm_data_wspd_value*sin(angle_theta_wind * pi / 180.0)
       elseif (dir == 'N') then
          uatm = c0
          vatm = atm_data_wspd_value
@@ -5329,52 +5328,56 @@
 
       do iblk = 1, nblocks
 
-           do j = 1, ny_block
+          do j = 1, ny_block
             
-         	! Trouver la position de l'ice edge pour cette colonne j
+         	
                 position_ice_edge = -1  ! Initialiser à une valeur hors domaine
+
                 do i = 1, nx_block
-                   ! write(*,*) 'i=', i, ', j=', j, ', aice=', aice(i,j,iblk)  ! Affichage de aice pour chaque cellule
-                   if (aice(i,j,iblk) > 0.15 .and. position_ice_edge == -1) then
-                      position_ice_edge = i  ! Première cellule avec de la glace (ice edge)
+                   if (.not. isnan(aice(i,j,iblk)) .and. aice(i,j,iblk) > 0.15 .and. position_ice_edge == -1) then
+                     position_ice_edge = i  ! Première cellule avec de la glace (ice edge)
                    endif
-         	end do
-                ! Affichage pour vérifier la position de l'ice edge
-                ! write(*,*) 'Ligne j=', j, ', position_ice_edge=', position_ice_edge
+        	 end do
                 do i = 1, nx_block
 	           dist_edge = 0.0
-		   if (position_ice_edge == -1 .or. i <= position_ice_edge) then
+		   if (position_ice_edge == -1 .or. i < position_ice_edge) then
+	 	   ! if (position_ice_edge == -1 .or. i < position_ice_edge - 2) then
                       ! Pas de glace dans cette colonne, pas de contrainte
                       strwvx(i,j,iblk) = c0
- 		      strwvy(i,j,iblk) = c0
+ 		       strwvy(i,j,iblk) = c0
 
 		   else			
                       ! zone de glace, calculer la distance à l'ice edge (position_ice_edge)
                       dist_edge = real(i - position_ice_edge, dbl_kind) * 100.0 ! Distance relative à l'ice edge
+		      ! dist_edge = real(i - (position_ice_edge - 2), dbl_kind) * 100.0
                       ! Décroissance exponentielle du vent dans la glace
-                      strwvx(i,j,iblk) = 0.5 * 1025 * 9.81 * cos(angle_theta_wind) * 0.3 * coeff_dissip * exp(-(coeff_dissip * dist_edge) / cos(angle_theta_wind))
- 		      strwvy(i,j,iblk) = 0.5 * 1025 * 9.81 * sin(angle_theta_wind) * 0.3 * coeff_dissip * exp(-(coeff_dissip * dist_edge) / cos(angle_theta_wind))
+                      strwvx(i,j,iblk) = 0.5 * 1025 * 9.81 * cos(angle_theta_wave * pi / 180.0) * 0.1 * coeff_dissip_wave * exp(-(coeff_dissip_wave * dist_edge) / cos(angle_theta_wave * pi / 180.0))
+ 		      strwvy(i,j,iblk) = 0.5 * 1025 * 9.81 * sin(angle_theta_wave * pi / 180.0) * 0.1 * coeff_dissip_wave * exp(-(coeff_dissip_wave * dist_edge) / cos(angle_theta_wave * pi / 180.0))
+                      ! strwvx(i,j,iblk) = 0.0
+ 		      ! strwvy(i,j,iblk) = 0.0
          	   endif
 
                 end do
-           end do
+          end do
       end do
+
 
       do iblk = 1, nblocks
          do j = 1, ny_block
          do i = 1, nx_block
 
-            ! wind stress
+!           wind stress
             wind(i,j,iblk) = sqrt(uatm(i,j,iblk)**2 + vatm(i,j,iblk)**2)
             tau = rhoa(i,j,iblk) * 0.0012_dbl_kind * wind(i,j,iblk)
-            strax(i,j,iblk) = aice(i,j,iblk) * ((tau * uatm(i,j,iblk)) + strwvx(i,j,iblk))
-            stray(i,j,iblk) = aice(i,j,iblk) * ((tau * vatm(i,j,iblk)) + strwvy(i,j,iblk))
-	    ! Affichage des valeurs de uatm et vatm pour chaque cellule
-            ! write(*,*) 'uatm(', i, ',', j, ') = ', uatm(i,j,iblk), ', vatm(', i, ',', j, ') = ', vatm(i,j,iblk)
+            strax(i,j,iblk) = (aice(i,j,iblk) * (tau * uatm(i,j,iblk))) + strwvx(i,j,iblk)
+            stray(i,j,iblk) = (aice(i,j,iblk) * (tau * vatm(i,j,iblk))) + strwvy(i,j,iblk)
+!	    Affichage des valeurs de uatm et vatm pour chaque cellule
+!           write(*,*) 'uatm(', i, ',', j, ') = ', uatm(i,j,iblk), ', vatm(', i, ',', j, ') = ', vatm(i,j,iblk)
 
-         enddo
-         enddo
+        enddo
+        enddo
       enddo ! nblocks
+
 
       end subroutine uniform_data_atm
 !=======================================================================

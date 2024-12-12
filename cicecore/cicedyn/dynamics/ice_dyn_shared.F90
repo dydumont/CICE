@@ -69,6 +69,7 @@
          m_min = p01              ! minimum ice mass (kg/m^2)
 
       real (kind=dbl_kind), public :: &
+
          revp        , & ! 0 for classic EVP, 1 for revised EVP
          e_yieldcurve, & ! VP aspect ratio of elliptical yield curve
          e_plasticpot, & ! VP aspect ratio of elliptical plastic potential
