@@ -3408,18 +3408,31 @@
             enddo
             enddo
 
-         elseif (trim(ice_data_type) == 'eastblock') then
-            ! block covering the center 50% of the domain
-            icells = 0
-            do j = jlo, jhi
-            do i = ilo, ihi
-               if (iglob(i) >= nx_global/4) then
-                  icells = icells + 1
-                  indxi(icells) = i
-                  indxj(icells) = j
-               endif
-            enddo
-            enddo
+!         elseif (trim(ice_data_type) == 'eastblock') then
+!            ! block covering the center 50% of the domain
+!            icells = 0
+!            do j = jlo, jhi
+!            do i = ilo, ihi
+!               if (iglob(i) >= nx_global/4) then
+!                  icells = icells + 1
+!                  indxi(icells) = i
+!                  indxj(icells) = j
+!               endif
+!            enddo
+!            enddo
+
+elseif (trim(ice_data_type) == 'eastblock') then
+   ! Ice present for i >= 25, open water for i < 25
+   icells = 0
+   do j = jlo, jhi
+   do i = ilo, ihi
+      if (iglob(i) >= 26) then
+         icells = icells + 1
+         indxi(icells) = i
+         indxj(icells) = j
+      endif
+   enddo
+   enddo
 
          elseif (trim(ice_data_type) == 'latsst') then
 
@@ -3470,6 +3483,8 @@
                j = indxj(ij)
 
                aicen(i,j,n) = ainit(n)
+               ! aicen(i,j,n) = real(iglob(i) - 1, kind=dbl_kind) / real(nx_global - 1, kind=dbl_kind)
+
 
                if (trim(ice_data_dist) == 'box2001') then
                   if (hinit(n) > c0) then
@@ -3513,7 +3528,11 @@
 
                endif  ! ice_data_dist
 
-               vicen(i,j,n) = hinit(n) * aicen(i,j,n) ! m
+               vicen(i,j,n) = hinit(n) * aicen(i,j,n)
+	       ! vicen(i,j,n) = (0.1 + (0.3 - 0.1) * (real(i - 1, dbl_kind) / real(nx_global - 1, dbl_kind))) * aicen(i,j,n)
+               ! vicen(i,j,n) = (0.05 + (0.3 - 0.05) * (1.0 - exp(-0.5 * real(i - 1, dbl_kind) / real(nx_global - 1, dbl_kind)))) * aicen(i,j,n)
+
+
                vsnon(i,j,n) = min(aicen(i,j,n)*hsno_init,p2*vicen(i,j,n))
 
                call icepack_init_trcr(Tair  = Tair(i,j), Tf = Tf(i,j),  &

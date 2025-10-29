@@ -681,8 +681,9 @@
 !            enddo       ! j
 !         enddo          ! iblk
 
-         floesize(99:200,:,4,:,:) = c1
-         floesize(201:nx_block,:,nfsd,:,:) = c1
+
+         floesize(99:nx_block,:,2,:,:) = c1
+
 
 !	 imin = 99
 !	 v = FLOOR(REAL(nx_block - imin) / REAL(nfsd))

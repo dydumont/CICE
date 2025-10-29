@@ -1025,6 +1025,8 @@
 ! authors: William H. Lipscomb, LANL
 !          Elizabeth C. Hunke, LANL
 
+
+
       subroutine init_history_dyn
 
       use ice_state, only: aice, vice, vsno, trcr, strength, divu, shear, vort
@@ -1043,6 +1045,7 @@
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
+
 
       sig1    (:,:,:) = c0
       sig2    (:,:,:) = c0

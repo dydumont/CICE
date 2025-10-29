@@ -773,6 +773,7 @@
          waterx(i,j) = uocn(i,j)*cosw - vocn(i,j)*sinw*sign(c1,fm(i,j))
          watery(i,j) = vocn(i,j)*cosw + uocn(i,j)*sinw*sign(c1,fm(i,j))
 
+
          ! combine tilt with wind stress
          if (trim(ssh_stress) == 'geostrophic') then
             ! calculate tilt from geostrophic currents if needed
@@ -1250,7 +1251,6 @@
                              aiX,      fm,       &
                              strocnx,  strocny)
  
-      ! use ice_forcing, only: strwvx, strwvy  ! Appel des variables depuis ice_forcing.F90
       use ice_domain, only: nblocks
 
       integer (kind=int_kind), intent(in) :: &
@@ -1314,12 +1314,6 @@
                             + (uocn(i,j) - uvel(i,j))*sinw*sign(c1,fm(i,j)))
 
 
-         ! Ajouter une boucle sur iblk pour parcourir les blocs et faire correspondre les dimensions de strocn et strwv.
-         ! do iblk = 1, nblocks
-                ! attribution à strocn de la contrainte calculée dans ice_forcing
-         	! strocnx(i,j) = strwvx(i,j,iblk)
-         	! strocny(i,j) = strwvy(i,j,iblk)
-         ! end do
 
          ! Hibler/Bryan stress
          ! the sign is reversed later, therefore negative here
@@ -1692,6 +1686,7 @@
       do j = 1, ny_block
       do i = 1, nx_block
          if (strength(i,j) > puny) then
+!         if (strength(i,j) == 0.0) then
             ! ice internal pressure
             sigP(i,j) = -p5*stressp(i,j)
 
@@ -1702,6 +1697,14 @@
             sig2(i,j) = (p5*(stressp(i,j) &
                       - sqrt(stressm(i,j)**2+c4*stress12(i,j)**2))) &
                       / strength(i,j)
+
+            ! normalized principal stresses
+!            sig1(i,j) = (p5*(stressp(i,j) &
+!                      + sqrt(stressm(i,j)**2+c4*stress12(i,j)**2))) &
+!                      / 2000.0
+!            sig2(i,j) = (p5*(stressp(i,j) &
+!                      - sqrt(stressm(i,j)**2+c4*stress12(i,j)**2))) &
+!                      / 2000.0
          else
             sig1(i,j) = spval_dbl
             sig2(i,j) = spval_dbl
@@ -2022,6 +2025,8 @@
                     / (uarea(i,j)+uarea(i,j-1)+uarea(i-1,j-1)+uarea(i-1,j))
 
          DeltaT(i,j) = sqrt(divT(i,j)**2 + e_factor*(tensionT(i,j)**2 + shearTsqr))
+         ! DeltaT(i,j) = DminTarea(i,j,1)
+
 
          divu(i,j) = divT(i,j) * tarear(i,j)
          tmp = DeltaT(i,j) * tarear(i,j)
@@ -2061,11 +2066,16 @@
                                Deltane,    Deltanw,    &
                                Deltase,    Deltasw     )
 
+use ice_calendar, only: istep0
+
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block    ! block dimensions
 
+      real (kind=dbl_kind) :: eps11, eps22, eps12
+
+
       integer (kind=int_kind), intent(in) :: &
-         i, j                  ! indices
+         i, j                 ! indices
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          uvel     , & ! x-component of velocity (m/s)
@@ -2125,6 +2135,25 @@
       Deltanw = sqrt(divunw**2 + e_factor*(tensionnw**2 + shearnw**2))
       Deltasw = sqrt(divusw**2 + e_factor*(tensionsw**2 + shearsw**2))
       Deltase = sqrt(divuse**2 + e_factor*(tensionse**2 + shearse**2))
+
+   ! Reconstruction des composantes epsilon_ij
+!   eps11 = 0.5d0*(divune + tensionne)
+!   eps22 = 0.5d0*(divune - tensionne)
+!   eps12 = 0.5d0*shearne
+
+   ! Write sans condition, à chaque appel
+!   write(*,*) 'istep=', istep0, ' i=', i, ' j=', j, &
+!        ' eps11=', eps11, ' eps22=', eps22, ' eps12=', eps12
+
+
+      ! Deltane = DminTarea(i,j,1)
+      ! Deltanw = DminTarea(i,j,1)
+      ! Deltasw = DminTarea(i,j,1)
+      ! Deltase = DminTarea(i,j,1)
+
+
+
+
 
       end subroutine strain_rates
 
@@ -2203,6 +2232,8 @@
 
          ! Delta (in the denominator of zeta, eta)
          DeltaT(i,j) = sqrt(divT(i,j)**2 + e_factor*(tensionT(i,j)**2 + shearT(i,j)**2))
+         ! DeltaT(i,j) = DminTarea(i,j,1)
+
 
       enddo
 
@@ -2390,6 +2421,8 @@
 
          ! Delta (in the denominator of zeta, eta)
          DeltaU(i,j)   = sqrt(divergU(i,j)**2 + e_factor*(tensionU(i,j)**2 + shearU(i,j)**2))
+         ! DeltaU(i,j) = DminTarea(i,j,1)
+
 
       enddo
 
@@ -2434,8 +2467,12 @@
 
       tmpcalc =     capping *(strength/max(Delta,DminArea))+ &
                 (c1-capping)*(strength/(Delta + DminArea))
+
+!      tmpcalc =   (27500/DminArea)
+
       zetax2  = (c1+Ktens)*tmpcalc
       rep_prs = (c1-Ktens)*tmpcalc*Delta
+!      rep_prs = 0.0
       etax2   = epp2i*zetax2
 
       end subroutine visc_replpress

@@ -2589,7 +2589,6 @@
              call accum_hist_field(n_fswthru, iblk, fswthru(:,:,iblk), a2D)
          if (f_fswthru_ai(1:1)/= 'x') &
              call accum_hist_field(n_fswthru_ai,iblk, fswthru_ai(:,:,iblk), a2D)
-
          if (f_strairx(1:1) /= 'x') &
              call accum_hist_field(n_strairx, iblk, strairxU(:,:,iblk), a2D)
          if (f_strairy(1:1) /= 'x') &

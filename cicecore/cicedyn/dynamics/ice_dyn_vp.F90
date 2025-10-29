@@ -326,8 +326,15 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
+
+
+      ! write(*,*) 'strax min/max before interpolation:', minval(strax), maxval(strax)
+
+
       if (.not. calc_strair) then
          call grid_average_X2Y('F', strax, grid_atm_dynu, strairxU, 'U')
+         ! write(*,*) 'strairxU min/max after interpolation:', minval(strairxU), maxval(strairxU)
+
          call grid_average_X2Y('F', stray, grid_atm_dynv, strairyU, 'U')
       else
          call ice_HaloUpdate (strairxT,         halo_info, &
@@ -1164,6 +1171,8 @@
 
       use ice_dyn_shared, only: strain_rates, visc_replpress, &
                                 capping
+use ice_calendar, only: istep0
+
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -1257,6 +1266,15 @@
          call visc_replpress (strength(i,j)  , DminTarea(i,j)  , &
                               Deltase        , zetax2   (i,j,4), &
                               etax2   (i,j,4), rep_prs  (i,j,4))
+
+!if (j == 10 .and. mod(istep0,100) == 0) then
+!   write(nu_diag,*) 'istep=', istep0, ' i=', i, &
+!        ' Deltane=', Deltane, &
+!        ' rep_prs_ne=', rep_prs(i,j,1)
+!endif
+
+
+
 
       !-----------------------------------------------------------------
       ! the stresses                            ! kg/s^2
