@@ -1,0 +1,5 @@
+#!/bin/csh -f 
+
+  ./cice.test
+echo "`date` ${0}: conda_macos_smoke_gbox80_1x1_gbox80.Vincent job submitted"  >> /Users/vincentdenarie/CICE/conda_macos_smoke_gbox80_1x1_gbox80.Vincent/README.case
+

@@ -1,0 +1,25 @@
+# cice.setup settings
+setenv ICE_SANDBOX  /Users/vincentdenarie/CICE
+setenv ICE_SCRIPTS  /Users/vincentdenarie/CICE/configuration/scripts
+setenv ICE_CASENAME conda_macos_smoke_gbox80_1x1_gbox80.Vincent
+setenv ICE_CASEDIR  /Users/vincentdenarie/CICE/conda_macos_smoke_gbox80_1x1_gbox80.Vincent
+setenv ICE_MACHINE  conda
+setenv ICE_ENVNAME  macos
+setenv ICE_MACHCOMP conda_macos
+setenv ICE_RUNDIR   /Users/vincentdenarie/cice-dirs/runs/conda_macos_smoke_gbox80_1x1_gbox80.Vincent
+setenv ICE_GRID     gbox80
+setenv ICE_NTASKS   1
+setenv ICE_NTHRDS   1
+setenv ICE_BASELINE /Users/vincentdenarie/cice-dirs/baseline
+setenv ICE_BASEGEN  UnDeFiNeD
+setenv ICE_BASECOM  UnDeFiNeD
+setenv ICE_SPVAL    UnDeFiNeD
+setenv ICE_CPPDEFS  
+setenv ICE_QUIETMODE  false
+setenv ICE_TEST     smoke
+setenv ICE_TESTNAME conda_macos_smoke_gbox80_1x1_gbox80
+setenv ICE_TESTID   Vincent
+setenv ICE_BFBCOMP  UnDeFiNeD
+setenv ICE_ACCOUNT  P0000000
+setenv ICE_QUEUE    debug
+setenv ICE_COVERAGE false

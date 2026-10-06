@@ -1,0 +1,50 @@
+#!/bin/csh -f
+
+setenv ICE_CASENAME  conda_macos_smoke_gbox80_1x1_gbox80.Vincent  
+setenv ICE_SANDBOX  /Users/vincentdenarie/CICE  
+setenv ICE_MACHINE  conda  
+setenv ICE_ENVNAME  macos  
+setenv ICE_MACHCOMP  conda_macos  
+setenv ICE_SCRIPTS  /Users/vincentdenarie/CICE/configuration/scripts  
+setenv ICE_CASEDIR  /Users/vincentdenarie/CICE/conda_macos_smoke_gbox80_1x1_gbox80.Vincent  
+setenv ICE_RUNDIR  /Users/vincentdenarie/cice-dirs/runs/conda_macos_smoke_gbox80_1x1_gbox80.Vincent  
+setenv ICE_OBJDIR     ${ICE_RUNDIR}/compile
+setenv ICE_RSTDIR     ${ICE_RUNDIR}/restart
+setenv ICE_HSTDIR     ${ICE_RUNDIR}/history
+setenv ICE_LOGDIR     ${ICE_CASEDIR}/logs
+setenv ICE_DRVOPT     standalone/cice
+setenv ICE_TARGET     cice
+setenv ICE_IOTYPE     netcdf    # binary, netcdf, pio1, pio2
+setenv ICE_CLEANBUILD true
+setenv ICE_CPPDEFS    
+setenv ICE_QUIETMODE  false  
+setenv ICE_GRID  gbox80  
+setenv ICE_NTASKS  1  
+setenv ICE_NTHRDS  1  
+setenv ICE_OMPSCHED   "static,1"
+setenv ICE_TEST  smoke  
+setenv ICE_TESTNAME  conda_macos_smoke_gbox80_1x1_gbox80  
+setenv ICE_TESTID  Vincent  
+setenv ICE_BASELINE  /Users/vincentdenarie/cice-dirs/baseline  
+setenv ICE_BASEGEN  UnDeFiNeD  
+setenv ICE_BASECOM  UnDeFiNeD  
+setenv ICE_BFBCOMP  UnDeFiNeD  
+setenv ICE_BFBTYPE    restart
+setenv ICE_SPVAL  UnDeFiNeD  
+setenv ICE_RUNLENGTH  -1
+setenv ICE_MEMUSE     -1
+setenv ICE_ACCOUNT  P0000000  
+setenv ICE_QUEUE  debug  
+
+#======================================================
+
+setenv ICE_THREADED   false
+if (${ICE_NTHRDS} > 1) setenv ICE_THREADED  true
+setenv ICE_COMMDIR mpi
+if (${ICE_NTASKS} == 1) setenv ICE_COMMDIR serial
+
+### Specialty code
+setenv ICE_SNICARHC  false  # compile with big hardcoded snicar table
+setenv ICE_BLDDEBUG  false  # build debug flags
+setenv ICE_COVERAGE  false  # build coverage flags
+
