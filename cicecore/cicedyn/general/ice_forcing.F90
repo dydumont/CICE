@@ -5292,8 +5292,8 @@
          integral_approx, f_value, fmin, fmax, diff_freq, sum_S
 
       ! Variables dynamiques
-      real(kind=dbl_kind), dimension(:), allocatable :: wave_freq_JONSWAP, omega_JONSWAP, delta_Stot, E_waves
-      real(kind=dbl_kind), dimension(:,:), allocatable :: nrj_JONSWAP, coeff_alpha
+      real(kind=dbl_kind), dimension(:), allocatable :: wave_freq, delta_Stot, E_waves
+      real(kind=dbl_kind), dimension(:,:), allocatable :: nrj, coeff_alpha
 
 
       real (kind=dbl_kind) :: &
@@ -5344,7 +5344,7 @@
       n_freq = 25
 
       ! Allocation des tableaux
-      allocate(wave_freq_JONSWAP(n_freq), nrj_JONSWAP(n_freq, nx_block), omega_JONSWAP(n_freq), coeff_alpha(n_freq, nx_block), delta_Stot(nx_block), E_waves(nx_block))
+      allocate(wave_freq(n_freq), nrj(n_freq, nx_block), coeff_alpha(n_freq, nx_block), delta_Stot(nx_block), E_waves(nx_block))
 
       ! Définition des bornes de fréquence
       fmin = 0.05
@@ -5357,33 +5357,39 @@
 
       ! Génération du tableau de fréquences
       do k = 1, n_freq
-        wave_freq_JONSWAP(k) = fmin + (k - 1) * diff_freq
+        wave_freq(k) = fmin + (k - 1) * diff_freq
       end do
 
-      ! write(*,*) 'wave_freq_JONSWAP:', wave_freq_JONSWAP
+      ! write(*,*) 'wave_freq:', wave_freq
 
      ! Initialisation des paramètres physiques
       grav = 9.81
       Hs = 2.0
-      fp = 0.20
+      fp = 0.2
       rho_w = 1025.0
+
+     ! E01 = 0.0179 (0.6m, 3s, fp = 0.333), E02 = 0.08371 (1.2m, 4s, fp = 0.25), E03 = 0.1535 (1.6m, 4.6s, fp = 0.2174), E04 = 0.2427 (2m, 5s, fp = 0.2)
+
+
 
      ! Génération du tableau d'énergie d'après spectre de Bretschneider
      do k = 1, n_freq
-          nrj_JONSWAP(k,1) = (5.0/16.0) * ((fp**4) / (wave_freq_JONSWAP(k)**5)) * (Hs**2) * exp((-5.0*(fp**4)) / (4.0*(wave_freq_JONSWAP(k)**4)))
+          nrj(k,1) = (5.0/16.0) * ((fp**4) / (wave_freq(k)**5)) * (Hs**2) * exp((-5.0*(fp**4)) / (4.0*(wave_freq(k)**4)))
      end do
 
      sum_S = 0.0
      do k = 1, n_freq
-     	sum_S = sum_S + nrj_JONSWAP(k,1)
+     	sum_S = sum_S + nrj(k,1)
      end do
 
      E_waves(1) = sum_S * diff_freq
 
-     ! write(*,*) 'E(1):', E_waves(1)
+     write(*,*) 'E(1):', E_waves(1)
 
 
-! NOUVELLE VERSION
+!-----------------------------------------------------------------------
+! BEGIN wave radiation stress (WRS) forcing
+!-----------------------------------------------------------------------
 
       do iblk = 1, nblocks
 
@@ -5393,65 +5399,23 @@
                       
                       E_waves(i) = 0.0
                       do jf = 1, n_freq
-			 coeff_alpha(jf, i) = 5.8e-3 * vice(i,j,iblk) * ((2*pi*wave_freq_JONSWAP(jf))**3.2)
-                         nrj_JONSWAP(jf,i) = nrj_JONSWAP(jf,i-1) * exp(-(coeff_alpha(jf, i) * aice(i-1,j,iblk) * (dxrect/100.0)) / cos(angle_theta_wave * pi / 180.0))
-			 E_waves(i) = E_waves(i) + nrj_JONSWAP(jf,i) * diff_freq
+			 coeff_alpha(jf, i) = 5.0e-4 * ((2*pi*wave_freq(jf))**3.2)
+                         nrj(jf,i) = nrj(jf,i-1) * exp(-(coeff_alpha(jf, i) * aice(i-1,j,iblk) * (dxrect/100.0)) / cos(angle_theta_wave * pi / 180.0))
+			 E_waves(i) = E_waves(i) + nrj(jf,i) * diff_freq
                       end do
-
 
  		      delta_Stot(i) = (E_waves(i)-E_waves(i-1)) / (dxrect/100.0);
 
-
-!	              if (aice(i,j,iblk) > 1.0e-10) then
-!                      	strwvx(i,j,iblk) = -0.5 * rho_w * grav * cos(angle_theta_wave * pi / 180.0) * cos(angle_theta_wave * pi / 180.0) * delta_Stot(i) / aice(i,j,iblk)
-!                      	strwvy(i,j,iblk) = -0.5 * rho_w * grav * sin(angle_theta_wave * pi / 180.0) * cos(angle_theta_wave * pi / 180.0) * delta_Stot(i) / aice(i,j,iblk)
-
-!	              else
-                      	strwvx(i,j,iblk) = -0.5 * rho_w * grav * cos(angle_theta_wave * pi / 180.0) * cos(angle_theta_wave * pi / 180.0) * delta_Stot(i)
-                      	strwvy(i,j,iblk) = -0.5 * rho_w * grav * sin(angle_theta_wave * pi / 180.0) * cos(angle_theta_wave * pi / 180.0) * delta_Stot(i)
-
-!	              endif
-
+                      strwvx(i,j,iblk) = -0.5 * rho_w * grav * cos(angle_theta_wave * pi / 180.0) * cos(angle_theta_wave * pi / 180.0) * delta_Stot(i)
+                      strwvy(i,j,iblk) = -0.5 * rho_w * grav * sin(angle_theta_wave * pi / 180.0) * cos(angle_theta_wave * pi / 180.0) * delta_Stot(i)
 
                 end do
           end do
       end do
 
-
-
-
-! ANCIENNE VERSION
-
-!      do iblk = 1, nblocks
-
-!          do j = 1, ny_block
-            
-         	
-!                position_ice_edge = -1  ! Initialiser à une valeur hors domaine
-
-!                do i = 1, nx_block
-!                   if (.not. isnan(aice(i,j,iblk)) .and. aice(i,j,iblk) > 0.2 .and. position_ice_edge == -1) then
-!                    position_ice_edge = i  ! Première cellule avec de la glace (ice edge)
-!                   endif
-!        	end do
-!                do i = 1, nx_block
-!	           dist_edge = 0.0
-!		   if (position_ice_edge == -1 .or. i < position_ice_edge) then
-                     ! Pas de glace dans cette colonne, pas de contrainte
-!                      strwvx(i,j,iblk) = c0
-! 		      strwvy(i,j,iblk) = c0
-
-!		   else			
-                      ! zone de glace, calculer la distance à l'ice edge (position_ice_edge)
-!                      dist_edge = real(i - position_ice_edge, dbl_kind) * 50.0 ! Distance relative à l'ice edge
-                      ! Décroissance exponentielle du vent dans la glace
-!                      strwvx(i,j,iblk) = 0.5 * 1025 * 9.81 * cos(angle_theta_wave * pi / 180.0) * 0.3 * coeff_dissip_wave * exp(-(coeff_dissip_wave * dist_edge) / cos(angle_theta_wave * pi / 180.0))
-! 		      strwvy(i,j,iblk) = 0.5 * 1025 * 9.81 * sin(angle_theta_wave * pi / 180.0) * 0.3 * coeff_dissip_wave * exp(-(coeff_dissip_wave * dist_edge) / cos(angle_theta_wave * pi / 180.0))
-!         	   endif
-
-!                end do
-!          end do
-!      end do
+!-----------------------------------------------------------------------
+! END wave radiation stress (WRS) forcing
+!-----------------------------------------------------------------------
 
 
       do iblk = 1, nblocks
